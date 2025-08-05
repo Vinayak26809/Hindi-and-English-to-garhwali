@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Garhwali Translator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      background: #FFF8F0;
+      padding: 2rem;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('/static/garhwal_himalayas_uttarakhand-1024x576.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: blur(3px);
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      background: rgba(239, 239, 220, 0.9);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.1),
+        0 10px 20px rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      position: relative;
+      z-index: 1;
+    }
+
+    textarea {
+      resize: none;
+      min-height: 100px;
+      overflow-y: hidden;
+    }
+
+    .output-box {
+      min-height: 100px;
+      background-color: #f9f9f9;
+    }
+
+    #logo {
+      height: 70px;
+      vertical-align: middle;
+      margin-right: 0px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+
+    <h2 class="text-center mb-4">Garhwali Translator</h2>
+
+    <div class="mb-3">
+      <label for="source" class="form-label">Select Translation Direction:</label>
+      <select id="source" class="form-select">
+        <option value="en">English → Garhwali</option>
+        <option value="hi">Hindi → Garhwali</option>
+        <option value="gbm">Garhwali → Hindi</option>
+        <option value="gbm_to_en">Garhwali → English</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="inputText" class="form-label">Enter or Speak Text:</label>
+      <div class="input-group">
+        <textarea id="inputText" class="form-control" placeholder="Type or speak..." oninput="autoExpand(this)"></textarea>
+        <button class="btn btn-outline-secondary" type="button" onclick="startVoiceInput()">🎤</button>
+        <button class="btn btn-outline-danger" type="button" onclick="stopVoiceInput()">⏹️</button>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+      <button class="btn btn-primary" type="button" onclick="translateText()">Translate</button>
+      <button class="btn btn-danger" type="button" onclick="clearText()">Clear</button>
+    </div>
+
+    <div>
+      <h5>Output:</h5>
+      <div id="result" class="output-box border rounded p-3"></div>
+      <div class="mt-2">
+        <button class="btn btn-outline-primary" type="button" onclick="speakOutput()">🔊 Listen</button>
+        <button class="btn btn-outline-danger" type="button" onclick="stopSpeaking()">⏹️ Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let recognition;
+    let synth = window.speechSynthesis;
+
+    function autoExpand(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    function startVoiceInput() {
+      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        alert('Speech recognition not supported in this browser.');
+        return;
+      }
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'hi-IN';
+      recognition.interimResults = false;
+      recognition.onresult = function(event) {
+        document.getElementById("inputText").value = event.results[0][0].transcript;
+      };
+      recognition.start();
+    }
+
+    function stopVoiceInput() {
+      if (recognition) recognition.stop();
+    }
+
+    function translateText() {
+      const text = document.getElementById("inputText").value;
+      const source = document.getElementById("source").value;
+      fetch('/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, source })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("result").innerText = data.result;
+      });
+    }
+
+    function clearText() {
+      document.getElementById("inputText").value = '';
+      document.getElementById("result").innerText = '';
+    }
+
+    function speakOutput() {
+      const text = document.getElementById("result").innerText;
+      if (!text) return;
+      stopSpeaking();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'hi-IN';
+      synth.speak(utterance);
+    }
+
+    function stopSpeaking() {
+      if (synth.speaking) {
+        synth.cancel();
+      }
+    }
+  </script>
+</body>
+</html>
